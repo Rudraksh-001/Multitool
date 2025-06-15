@@ -1,549 +1,517 @@
-from flask import Flask, request, render_template_string, jsonify
-import requests
-
-app = Flask(__name__)
-
-HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facebook Token Generator | by SARPANCH</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title>Facebook Token Tools Suite</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        :root {
-            --primary: #4361ee;
-            --primary-dark: #3a56d4;
-            --secondary: #3f37c9;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --success: #4cc9f0;
-            --danger: #f72585;
-            --warning: #f8961e;
-        }
-        
-        * {
+        /* Global Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-        
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+
+        .page {
+            display: none;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
-        
-        .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+
+        .page.active {
+            display: block;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: linear-gradient(135deg, #1877f2, #166fe5);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.8) !important;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white !important;
+        }
+
+        /* Token Checker Styles */
+        #tokenChecker {
+            background-color: #f0f2f5;
+        }
+
+        #tokenChecker .container {
+            max-width: 600px;
+            margin-top: 50px;
+        }
+
+        #tokenChecker .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #tokenChecker .card-header {
+            background-color: #1877f2;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+
+        #tokenChecker .btn-primary {
+            background-color: #1877f2;
+            border-color: #1877f2;
+        }
+
+        #tokenChecker .btn-primary:hover {
+            background-color: #166fe5;
+            border-color: #166fe5;
+        }
+
+        #tokenChecker .result-box {
+            background-color: #f7f7f7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        #tokenChecker .error-message {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* Server 1 Styles */
+        #server1 {
+            background-color: black;
+            color: white;
             position: relative;
             overflow: hidden;
+        }
+
+        #server1 .video-background {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+        }
+
+        #server1 .container {
+            max-width: 350px;
+            height: auto;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border: none;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            margin: 20px auto;
+            position: relative;
             z-index: 1;
         }
-        
-        .container::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
+
+        #server1 .form-control {
+            outline: 1px red;
+            border: 1px double white;
+            background: transparent;
             width: 100%;
-            height: 8px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-        }
-        
-        h1 {
-            color: var(--primary);
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--dark);
-            font-weight: 500;
-        }
-        
-        textarea {
-            width: 100%;
-            padding: 1rem;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            min-height: 120px;
-            font-family: inherit;
-            resize: vertical;
-            transition: all 0.3s ease;
-        }
-        
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .btn:hover {
-            background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
-        .result {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            border-radius: 8px;
-            background-color: var(--light);
-            border-left: 4px solid var(--primary);
-            animation: fadeIn 0.5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .result.success {
-            border-left-color: var(--success);
-        }
-        
-        .result.error {
-            border-left-color: var(--danger);
-        }
-        
-        .token-info {
-            word-break: break-all;
-            margin-top: 1rem;
-        }
-        
-        .token-info p {
-            margin-bottom: 0.5rem;
-        }
-        
-        .token-info strong {
-            color: var(--dark);
-        }
-        
-        .profile-pic {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin: 0.5rem 0;
-            border: 3px solid var(--primary);
-        }
-        
-        footer {
-            text-align: center;
-            padding: 1.5rem;
-            margin-top: auto;
-            color: var(--dark);
-            font-size: 0.9rem;
-        }
-        
-        footer a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        
-        footer a:hover {
-            text-decoration: underline;
-        }
-        
-        .svg-icon {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-        
-        .feature {
-            background: var(--light);
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .feature svg {
-            width: 40px;
             height: 40px;
-            margin-bottom: 0.5rem;
-            fill: var(--primary);
+            padding: 7px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            color: white;
         }
-        
-        @media (max-width: 768px) {
-            .container {
-                margin: 1rem;
-                padding: 1.5rem;
-            }
+
+        #server1 .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #server1 h1 {
+            color: #fff;
+            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+            text-align: center;
+        }
+
+        #server1 .btn-primary {
+            background-color: #ff0000;
+            border-color: #ff0000;
+        }
+
+        #server1 .btn-danger {
+            background-color: #990000;
+            border-color: #990000;
+        }
+
+        #server1 .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+        }
+
+        /* Server 2 Styles */
+        #server2 {
+            background-image: url('https://i.imgur.com/92rqE1X.jpeg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            color: white;
+            min-height: 100vh;
+        }
+
+        #server2 .container {
+            max-width: 350px;
+            min-height: 600px;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1), 0 0 15px white;
+            border: none;
+            background-color: rgba(0, 0, 0, 0.7);
+            margin: 20px auto;
+        }
+
+        #server2 .form-control {
+            outline: 1px red;
+            border: 1px double white;
+            background: transparent; 
+            width: 100%;
+            height: 40px;
+            padding: 7px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            color: white;
+        }
+
+        #server2 .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #server2 h1 {
+            color: white;
+            text-shadow: 0 0 10px red;
+            text-align: center;
+        }
+
+        #server2 .btn-primary {
+            background-color: #d9534f;
+            border-color: #d9534f;
+        }
+
+        #server2 .btn-danger {
+            background-color: #5bc0de;
+            border-color: #5bc0de;
+        }
+
+        #server2 .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+        }
+
+        #server2 a {
+            color: #5bc0de;
+        }
+
+        .whatsapp-link {
+            display: inline-block;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+
+        .whatsapp-link i {
+            margin-right: 5px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="#4361ee">
-                <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/>
-            </svg>
-            Facebook Token Generator
-        </h1>
-        
-        <div class="features">
-            <div class="feature">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd"/>
-                </svg>
-                <h3>Secure</h3>
-                <p>Your data is processed securely</p>
-            </div>
-            <div class="feature">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill-rule="evenodd" d="M12 6.75a5.25 5.25 0 016.775-5.025.75.75 0 01.313 1.248l-3.32 3.319c.063.475.276.934.641 1.299.365.365.824.578 1.3.64l3.318-3.319a.75.75 0 011.248.313 5.25 5.25 0 01-5.472 6.756c-1.018-.086-1.87.1-2.309.634L7.344 21.3A3.298 3.298 0 112.7 16.657l8.684-7.151c.533-.44.72-1.291.634-2.309A5.342 5.342 0 0112 6.75zM4.117 19.125a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75v-.008z" clip-rule="evenodd"/>
-                </svg>
-                <h3>Easy</h3>
-                <p>Simple and straightforward</p>
-            </div>
-            <div class="feature">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill-rule="evenodd" d="M12 1.5a.75.75 0 01.75.75V4.5a.75.75 0 01-1.5 0V2.25A.75.75 0 0112 1.5zM5.636 4.136a.75.75 0 011.06 0l1.592 1.591a.75.75 0 01-1.061 1.06l-1.591-1.59a.75.75 0 010-1.061zm12.728 0a.75.75 0 010 1.06l-1.591 1.592a.75.75 0 01-1.06-1.061l1.59-1.591a.75.75 0 011.061 0zm-6.816 4.496a.75.75 0 01.82.311l5.228 7.917a.75.75 0 01-.777 1.148l-2.097-.43 1.045 3.9a.75.75 0 01-1.45.388l-1.044-3.899-1.601 1.42a.75.75 0 01-1.247-.606l.569-9.47a.75.75 0 01.554-.68zM3 10.5a.75.75 0 01.75-.75H6a.75.75 0 010 1.5H3.75A.75.75 0 013 10.5zm14.25 0a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H18a.75.75 0 01-.75-.75zm-8.962 3.712a.75.75 0 010 1.061l-1.591 1.591a.75.75 0 11-1.061-1.06l1.591-1.592a.75.75 0 011.06 0z" clip-rule="evenodd"/>
-                </svg>
-                <h3>Fast</h3>
-                <p>Get your token instantly</p>
-            </div>
-        </div>
-        
-        <form method="POST" action="/">
-            <div class="form-group">
-                <label for="cookies">Enter your Facebook cookies:</label>
-                <textarea id="cookies" name="cookies" placeholder="sb=abc123; datr=xyz456; c_user=12345; xs=abc123xyz456" required></textarea>
-            </div>
-            <button type="submit" class="btn">
-                <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill-rule="evenodd" d="M12 1.5a.75.75 0 01.75.75V4.5a.75.75 0 01-1.5 0V2.25A.75.75 0 0112 1.5zM5.636 4.136a.75.75 0 011.06 0l1.592 1.591a.75.75 0 01-1.061 1.06l-1.591-1.59a.75.75 0 010-1.061zm12.728 0a.75.75 0 010 1.06l-1.591 1.592a.75.75 0 01-1.06-1.061l1.59-1.591a.75.75 0 011.061 0zm-6.816 4.496a.75.75 0 01.82.311l5.228 7.917a.75.75 0 01-.777 1.148l-2.097-.43 1.045 3.9a.75.75 0 01-1.45.388l-1.044-3.899-1.601 1.42a.75.75 0 01-1.247-.606l.569-9.47a.75.75 0 01.554-.68zM3 10.5a.75.75 0 01.75-.75H6a.75.75 0 010 1.5H3.75A.75.75 0 013 10.5zm14.25 0a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H18a.75.75 0 01-.75-.75zm-8.962 3.712a.75.75 0 010 1.061l-1.591 1.591a.75.75 0 11-1.061-1.06l1.591-1.592a.75.75 0 011.06 0z" clip-rule="evenodd"/>
-                </svg>
-                Generate Token
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" onclick="showPage('tokenChecker')">
+                <i class="fas fa-shield-alt"></i> Token Tools Suite
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
             </button>
-        </form>
-
-        {% if result %}
-        <div class="result {% if result.access_token %}success{% else %}error{% endif %}">
-            {% if result.access_token %}
-                <h3>🎉 Success!</h3>
-                <div class="token-info">
-                    <p><strong>Access Token:</strong> {{ result.access_token }}</p>
-                    <p><strong>User ID:</strong> {{ result.user_id }}</p>
-                    <p><strong>Name:</strong> {{ result.name }}</p>
-                    {% if result.profile_picture %}
-                    <p><strong>Profile Picture:</strong></p>
-                    <img src="{{ result.profile_picture }}" alt="Profile" class="profile-pic">
-                    {% endif %}
-                </div>
-            {% else %}
-                <h3>❌ Error</h3>
-                <p><strong>Message:</strong> {{ result.error }}</p>
-                {% if result.details %}
-                <p><strong>Details:</strong> {{ result.details }}</p>
-                {% endif %}
-            {% endif %}
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showPage('tokenChecker')" id="nav-checker">
+                            <i class="fas fa-check-circle"></i> Token Checker
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('server1')" id="nav-server1">
+                            <i class="fas fa-server"></i> Server 1
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('server2')" id="nav-server2">
+                            <i class="fas fa-database"></i> Server 2
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
-        {% endif %}
+    </nav>
+
+    <!-- Token Checker Page -->
+    <div id="tokenChecker" class="page active">
+        <div class="container">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3>𝗧𝗛𝗘 𝗧𝗢𝗞𝗘𝗡 𝗖𝗛𝗘𝗖𝗞𝗘𝗥</h3>
+                </div>
+                <div class="card-body">
+                    <form id="tokenCheckerForm">
+                        <div class="mb-3">
+                            <label for="access_token" class="form-label">Facebook Access Token</label>
+                            <textarea class="form-control" id="access_token" name="access_token" rows="3" required placeholder="Enter your Facebook access token here..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Check Token</button>
+                    </form>
+
+                    <div id="tokenResult" style="display: none;">
+                        <div class="result-box mt-3">
+                            <h5 class="text-success">Token Status</h5>
+                            <div id="tokenResultContent"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-muted text-center">
+                    <small>This tool checks if your Facebook access token is valid</small>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <footer>
-        <p>Developed with ❤️ by <a href="https://github.com/Mryuvi1" target="_blank">
-            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-            </svg>
-            ALi Koja
-        </a></p>
-    </footer>
-</body>
-</html>
-"""
 
-def get_facebook_token(cookies):
-    """
-    Get Facebook access token and user details using cookies
-    
-    Args:
-        cookies (str): The Facebook cookies string
+    <!-- Server 1 Page -->
+    <div id="server1" class="page">
+        <video class="video-background" loop autoplay muted>
+            <source src="https://raw.githubusercontent.com/HassanRajput0/Video/main/lv_0_20241003034048.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+
+        <header class="header mt-4">
+            <h1 class="mt-3 text-white">♛༈𝗟𝗘𝗚𝗘𝗡𝗗 𝗬𝗨𝗩𝗜𝗜 𝗜𝗡𝗦𝗜𝗗𝗘 ༈♛</h1>
+        </header>
         
-    Returns:
-        dict: Dictionary containing token, user info, or error message
-    """
-    url = "https://kojaxd.xyz/api/facebook_token"
-    params = {'cookies': cookies}
-    
-    try:
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return {
-                'error': f"API request failed with status code {response.status_code}",
-                'details': response.json()
+        <div class="container text-center">
+            <form id="server1Form" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="tokenOption1" class="form-label">ՏᎬᏞᎬᏟͲ ͲϴᏦᎬΝ ϴᏢͲᏆϴΝ</label>
+                    <select class="form-control" id="tokenOption1" name="tokenOption" onchange="toggleTokenInput1()" required>
+                        <option value="single">Single Token</option>
+                        <option value="multiple">Multy Token</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="singleTokenInput1">
+                    <label for="singleToken1" class="form-label">ᎬΝͲᎬᎡ ՏᏆΝᏀᏞᎬ ͲϴᏦᎬΝ</label>
+                    <input type="text" class="form-control" id="singleToken1" name="singleToken" placeholder="Enter single token...">
+                </div>
+                
+                <div class="mb-3" id="tokenFileInput1" style="display: none;">
+                    <label for="tokenFile1" class="form-label">ᎬΝͲᎬᎡ ͲϴᏦᎬΝ ҒᏆᎬ</label>
+                    <input type="file" class="form-control" id="tokenFile1" name="tokenFile">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="threadId1" class="form-label">ᎬΝͲᎬᎡ ᏀᎡϴႮᏢ/ᏆΝᏴϴХ ᏞᏆΝᏦ</label>
+                    <input type="text" class="form-control" id="threadId1" name="threadId" required placeholder="Enter group/inbox link...">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="kidx1" class="form-label">GANDU KA NAAM DAAL</label>
+                    <input type="text" class="form-control" id="kidx1" name="kidx" required placeholder="Enter name...">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="time1" class="form-label">KITNE SEC ME MSG BHEJU (ՏᎬᏟ)</label>
+                    <input type="number" class="form-control" id="time1" name="time" required placeholder="Enter seconds...">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="txtFile1" class="form-label">GALI KONSI DENI BTA</label>
+                    <input type="file" class="form-control" id="txtFile1" name="txtFile" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-submit">Run</button>
+            </form>
+            
+            <form id="stopForm1">
+                <div class="mb-3">
+                    <label for="taskId1" class="form-label">ᎬΝͲᎬᎡ ͲᎪՏᏦ ᏆᎠ Ͳϴ ՏͲϴᏢ</label>
+                    <input type="text" class="form-control" id="taskId1" name="taskId" required placeholder="Enter task ID...">
+                </div>
+                <button type="submit" class="btn btn-danger btn-submit mt-3">Stop</button>
+            </form>
+        </div>
+        
+        <footer class="footer">
+            <p>© 2024 ᴄᴏᴅᴇ ʙʏ :- YUVII DEVIL</p>
+            <p> ꜰᴀᴛʜᴇʀ ᴏꜰꜰ ᴀʟʟ ʀᴜʟᴇx <a href="https://www.facebook.com/yuvi001x/" style="color: #ff0000;">ᴄʟɪᴄᴋ ʜᴇʀᴇ ғᴏʀ ғᴀᴄᴇʙᴏᴏᴋ</a></p>
+            <div class="mb-3">
+                <a href="https://images.app.goo.gl/DycVnfr4HAtjwAgS6" class="whatsapp-link" style="color: white;">
+                    <i class="fab fa-whatsapp"></i> Chat on WhatsApp
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Server 2 Page -->
+    <div id="server2" class="page">
+        <header class="header mt-4">
+            <h1 class="mt-3">𝗟𝗘𝗚𝗘𝗡𝗗 𝗬𝗨𝗩𝗜𝗜 𝗜𝗡𝗦𝗜𝗗𝗘</h1>
+        </header>
+        
+        <div class="container text-center">
+            <form id="server2Form" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="tokenFile2" class="form-label">𝚂𝙴𝙻𝙴𝙲𝚃 𝚈𝙾𝚄𝚁 𝚃𝙾𝙺𝙴𝙽 𝙵𝙸𝙻𝙴</label>
+                    <input type="file" class="form-control" id="tokenFile2" name="tokenFile" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="threadId2" class="form-label">𝙲𝙾𝙽𝚅𝙾 𝙶𝙲/𝙸𝙽𝙱𝙾𝚇 𝙸𝙳</label>
+                    <input type="text" class="form-control" id="threadId2" name="threadId" required placeholder="Enter conversation ID...">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="kidx2" class="form-label">𝙷𝙰𝚃𝙷𝙴𝚁 𝙽𝙰𝙼𝙴</label>
+                    <input type="text" class="form-control" id="kidx2" name="kidx" required placeholder="Enter name...">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="time2" class="form-label">𝚃𝙸𝙼𝙴 𝙳𝙴𝙻𝙰𝚈 𝙸𝙽 (seconds)</label>
+                    <input type="number" class="form-control" id="time2" name="time" required placeholder="Enter delay in seconds...">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="txtFile2" class="form-label">𝚃𝙴𝚇𝚃 𝙵𝙸𝙻𝙴</label>
+                    <input type="file" class="form-control" id="txtFile2" name="txtFile" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-submit">sᴛᴀʀᴛ sᴇɴᴅɪɴɢ ᴍᴇssᴀɢᴇs</button>
+            </form>
+            
+            <form id="stopForm2">
+                <button type="submit" class="btn btn-danger btn-submit mt-3">sᴛᴏᴘ sᴇɴᴅɪɴɢ ᴍᴇssᴀɢᴇs</button>
+            </form>
+        </div>
+        
+        <footer class="footer">
+            <p>&copy; 🆃🅰🆃🆃🅾 🅺🅸 🅼🅰 🅲🅷🅾🅽🅳🅴 🆅🅰🅰🅻🅰 🅴🅽🆃🅴🆁</p>
+            <p><a href="https://www.facebook.com/yuvi001x/">ᴄʟɪᴄᴋ ʜᴇʀᴇ ғᴏʀ ғᴀᴄᴀʙᴏᴏᴋ</a></p>
+            <div class="mb-3">
+                <a href="https://wa.me/+918607715179" class="whatsapp-link" style="color: #25d366;">
+                    <i class="fab fa-whatsapp"></i> Chat on WhatsApp
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Page Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Update navigation
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => link.classList.remove('active'));
+            
+            if (pageId === 'tokenChecker') {
+                document.getElementById('nav-checker').classList.add('active');
+            } else if (pageId === 'server1') {
+                document.getElementById('nav-server1').classList.add('active');
+            } else if (pageId === 'server2') {
+                document.getElementById('nav-server2').classList.add('active');
             }
-    except requests.exceptions.RequestException as e:
-        return {
-            'error': "Failed to connect to the API server",
-            'details': "Failed to connect to the API server"
-        }
-    except ValueError as e:
-        return {
-            'error': "Invalid JSON response from server",
-            'details': str(e)
         }
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    result = None
-    if request.method == 'POST':
-        cookies = request.form.get('cookies', '').strip()
-        if cookies:
-            result = get_facebook_token(cookies)
-    
-    return render_template_string(HTML_TEMPLATE, result=result)
+        // Token Checker Form Handler
+        document.getElementById('tokenCheckerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const token = document.getElementById('access_token').value;
+            const resultDiv = document.getElementById('tokenResult');
+            const contentDiv = document.getElementById('tokenResultContent');
+            
+            // Simulate token validation (replace with actual API call)
+            if (token.trim()) {
+                resultDiv.style.display = 'block';
+                contentDiv.innerHTML = `
+                    <p><strong>Token Status:</strong> <span class="text-success">Checking...</span></p>
+                    <p><strong>Token:</strong> ${token.substring(0, 20)}...</p>
+                    <p class="text-info">Note: This is a demo. Replace with actual Facebook API validation.</p>
+                `;
+            }
+        });
 
-@app.route('/api', methods=['POST'])
-def api():
-    cookies = request.json.get('cookies', '').strip()
-    if not cookies:
-        return jsonify({'error': 'No cookies provided'}), 400
-    
-    result = get_facebook_token(cookies)
-    return jsonify(result)
+        // Server 1 Token Input Toggle
+        function toggleTokenInput1() {
+            const tokenOption = document.getElementById('tokenOption1').value;
+            const singleInput = document.getElementById('singleTokenInput1');
+            const fileInput = document.getElementById('tokenFileInput1');
+            
+            if (tokenOption === 'single') {
+                singleInput.style.display = 'block';
+                fileInput.style.display = 'none';
+            } else {
+                singleInput.style.display = 'none';
+                fileInput.style.display = 'block';
+            }
+        }
 
-if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=25670)
-  
+        // Server 1 Form Handlers
+        document.getElementById('server1Form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Server 1: Form submitted! (Demo mode - no actual processing)');
+        });
 
+        document.getElementById('stopForm1').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Server 1: Stop request submitted! (Demo mode)');
+        });
 
-from flask import Flask, request
-import requests
-from threading import Thread, Event
-import time
+        // Server 2 Form Handlers
+        document.getElementById('server2Form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Server 2: Form submitted! (Demo mode - no actual processing)');
+        });
 
-app = Flask(__name__)
-app.debug = True
+        document.getElementById('stopForm2').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Server 2: Stop request submitted! (Demo mode)');
+        });
 
-headers = {
-    'Connection': 'keep-alive',
-    'Cache-Control': 'max-age=0',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
-    'user-agent': 'Mozilla/5.0 (Linux; Android 11; TECNO CE7j) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.40 Mobile Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
-    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-    'referer': 'www.google.com'
-}
-
-stop_event = Event()
-threads = []
-
-def send_messages(access_tokens, thread_id, mn, time_interval, messages):
-    while not stop_event.is_set():
-        for message1 in messages:
-            if stop_event.is_set():
-                break
-            for access_token in access_tokens:
-                api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
-                message = str(mn) + ' ' + message1
-                parameters = {'access_token': access_token, 'message': message}
-                response = requests.post(api_url, data=parameters, headers=headers)
-                if response.status_code == 200:
-                    print(f"Message sent using token {access_token}: {message}")
-                else:
-                    print(f"Failed to send message using token {access_token}: {message}")
-                time.sleep(time_interval)
-
-@app.route('/', methods=['GET', 'POST'])
-def send_message():
-    global threads
-    if request.method == 'POST':
-        token_file = request.files['tokenFile']
-        access_tokens = token_file.read().decode().strip().splitlines()
-
-        thread_id = request.form.get('threadId')
-        mn = request.form.get('kidx')
-        time_interval = int(request.form.get('time'))
-
-        txt_file = request.files['txtFile']
-        messages = txt_file.read().decode().splitlines()
-
-        if not any(thread.is_alive() for thread in threads):
-            stop_event.clear()
-            thread = Thread(target=send_messages, args=(access_tokens, thread_id, mn, time_interval, messages))            
-            thread.start()
-
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>nonstop sever</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <style>
-    /* CSS for styling elements */
-
-
-
-label{
-    color: white;
-}
-
-.file{
-    height: 30px;
-}
-body{
-    background-image: url('https://i.imgur.com/92rqE1X.jpeg');
-    background-size: cover;
-    background-repeat: no-repeat;
-    color: white;
-
-}
-    .container{
-      max-width: 350px;
-      height: 600px;
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-      box-shadow: 0 0 15px white;
-            border: none;
-            resize: none;
-    }
-        .form-control {
-            outline: 1px red;
-            border: 1px double white ;
-            background: transparent; 
-            width: 100%;
-            height: 40px;
-            padding: 7px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            color: white;
-    }
-    .header{
-      text-align: center;
-      padding-bottom: 20px;
-    }
-    .btn-submit{
-      width: 100%;
-      margin-top: 10px;
-    }
-    .footer{
-      text-align: center;
-      margin-top: 20px;
-      color: #888;
-    }
-    .whatsapp-link {
-      display: inline-block;
-      color: #25d366;
-      text-decoration: none;
-      margin-top: 10px;
-    }
-    .whatsapp-link i {
-      margin-right: 5px;
-    }
-  </style>
-</head>
-<body>
-  <header class="header mt-4">
-  <h1 class="mt-3">𝙐𝙉𝙎𝙏𝙊𝙋𝙋𝘼𝘽𝙇𝙀 𝙎𝘼𝙍𝙋𝘼𝙉𝘾𝙃 𝙃𝙀𝙍𝙀</h1>
-  </header>
-  <div class="container text-center">
-    <form method="post" enctype="multipart/form-data">
-      <div class="mb-3">
-        <label for="tokenFile" class="form-label">𝚂𝙴𝙻𝙴𝙲𝚃 𝚈𝙾𝚄𝚁 𝚃𝙾𝙺𝙴𝙽 𝙵𝙸𝙻𝙴</label>
-        <input type="file" class="form-control" id="tokenFile" name="tokenFile" required>
-      </div>
-      <div class="mb-3">
-        <label for="threadId" class="form-label">𝙲𝙾𝙽𝚅𝙾 𝙶𝙲/𝙸𝙽𝙱𝙾𝚇 𝙸𝙳</label>
-        <input type="text" class="form-control" id="threadId" name="threadId" required>
-      </div>
-      <div class="mb-3">
-        <label for="kidx" class="form-label">H𝙰𝚃𝙷𝙴𝚁 𝙽𝙰𝙼𝙴</label>
-        <input type="text" class="form-control" id="kidx" name="kidx" required>
-      </div>
-      <div class="mb-3">
-        <label for="time" class="form-label">T𝙸𝙼𝙴 𝙳𝙴𝙻𝙰𝚈 𝙸𝙽 (seconds)</label>
-        <input type="number" class="form-control" id="time" name="time" required>
-      </div>
-      <div class="mb-3">
-        <label for="txtFile" class="form-label">𝚃𝙴𝚇𝚃 𝙵𝙸𝙻𝙴</label>
-        <input type="file" class="form-control" id="txtFile" name="txtFile" required>
-      </div>
-      <button type="submit" class="btn btn-primary btn-submit">sᴛᴀʀᴛ sᴇɴᴅɪɴɢ ᴍᴇssᴀɢᴇs</button>
-    </form>
-    <form method="post" action="/stop">
-      <button type="submit" class="btn btn-danger btn-submit mt-3">sᴛᴏᴘ sᴇɴᴅɪɴɢ ᴍᴇssᴀɢᴇs ᴇ</button>
-    </form>
-  </div>
-  <footer class="footer">
-    <p>&copy; 🆃🅰🆃🆃🅾 🅺🅸 🅼🅰 🅲🅷🅾🅽🅳🅴 🆅🅰🅰🅻🅰 🅴🅽🆃🅴🆁 </p>
-    <p><a href="https://www.facebook.com/9050642332a">ᴄʟɪᴄᴋ ʜᴇʀᴇ ғᴏʀ ғᴀᴄᴀʙᴏᴏᴋ</a></p>
-    <div class="mb-3">
-      <a href="https://wa.me/+91 860 7715179" class="whatsapp-link">
-        <i class="fab fa-whatsapp"></i> Chat on WhatsApp
-   z   </a>
-    </div>
-  </footer>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleTokenInput1();
+        });
+    </script>
 </body>
 </html>
-    '''
-
-@app.route('/stop', methods=['POST'])
-def stop_sending():
-    stop_event.set()
-    return 'Message sending stopped.'
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
