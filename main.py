@@ -1,130 +1,412 @@
+from flask import Flask, render_template_string
 import requests
+import re
 import time
-import sys
-from platform import system
 import os
-import http.server
-import socketserver
-import threading
 
-class MyHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b"W3LC0M3 T0 SERV3R TRICK BYE YUV1 D09 ON BUKH9MP HEATER'S KII AMMI C0NVO M3 R9KH K9R CH0DN3 W9L9 YUV11 D0N3 H3R")
+app = Flask(__name__)
+app.debug = True
 
-def execute_server():
-    PORT = 4000
+html_content = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SERVER MENU</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css" integrity="sha512-YWzhKL2whUzgiheMoBFwW8CKV4qpHQAEuvilg9FAn5VJUDwKZZxkJNuGM4XkWuk94WCrrwslk8yWNGmY1EduTA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+   <link rel="stylesheet" href="style.css" type="text/css" media="all" />
+    <style>
+        *{
 
-    with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
-        print("Server running at http://localhost:{}".format(PORT))
-        httpd.serve_forever()
+    box-sizing: border-box;
 
-def send_messages():
-    with open('password.txt', 'r') as file:
-        password = file.read().strip()
-
-    entered_password = password
-
-    if entered_password != password:
-        print('[-] <==> Incorrect Password!')
-        sys.exit()
-
-    with open('token.txt', 'r') as file:
-        tokens = file.readlines()
-    num_tokens = len(tokens)
-
-    requests.packages.urllib3.disable_warnings()
-
-    def cls():
-        if system() == 'Linux':
-            os.system('clear')
-        else:
-            if system() == 'Windows':
-                os.system('cls')
-    cls()
-
-    def liness():
-        print('\u001b[37m' + '============================================>BR9ND B0II R0NII J99T 0N BHUK9MP')
-
-    headers = {
-        'Connection': 'keep-alive',
-        'Cache-Control': 'max-age=0',
-        'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 8.0.0; Samsung Galaxy S9 Build/OPR6.170623.017; wv) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.125 Mobile Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate',
-        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-        'referer': 'www.google.com'
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: "Poppins", sans-serif;
+    --color1: #FFF ;
+    --color2: #181818 ;
+    background-color: white;
+    background-size: cover;
+    color: white;
+}
+h3{
+    font-size: 12px;
+    color: black;
+    text-align: center;
+}
+h2{
+    text-align: center;
+    font-size: 19px;
+    font-family: cursive;
+    color: black;
+}
+.nav-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+    position: relative;
+    background-color: var(--color2);
+    padding: 12px 20px;
+}
+.logo img {width: 40px;}
+.menu {display: flex;}
+.menu li {padding-left: 30px;}
+.menu li a {
+    display: inline-block;
+    text-decoration: none;
+    color: var(--color1);
+    text-align: center;
+    transition: 0.15s ease-in-out;
+    position: relative;
+    text-transform: uppercase;
+}
+.menu li a::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: var(--color1);
+    transition: 0.15s ease-in-out;
+}
+.menu li a:hover:after {width: 100%;}
+.open-menu , .close-menu {
+    position: absolute;
+    color: var(--color1);
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: none;
+}
+.open-menu {
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+}
+.close-menu {
+    top: 20px;
+    right: 20px;
+}
+#check {display: none;}
+@media(max-width: 610px){
+    .menu {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 80%;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        right: -100%;
+        z-index: 100;
+        background-color: var(--color2);
+        transition: all 0.2s ease-in-out;
     }
+    .menu li {margin-top: 40px;}
+    .menu li a {padding: 10px;}
+    .open-menu , .close-menu {display: block;}
+    #check:checked ~ .menu {left: 0;}
+}
 
-    mmm = requests.get('https://pastebin.com/raw/y7EL3c4e').text
+.convo{
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    width: 250px;
+    height: 120px;
+    background-color: #707070;
+    margin-left: 55px;
+}
+h1{
+    margin-top: 10px;
+    color: black;
+    font-size: 12px;
+    text-align: center;
+}
 
-    if mmm not in password:
-        print('[-] <=Ć°ÅøĀĀ¾=> Incorrect Password!')
-        sys.exit()
+details{
+    color: red;
+}
+.image-container {
+  position: relative;
+  width: 330px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 13px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
 
-    liness()
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
 
-    access_tokens = [token.strip() for token in tokens]
+.image-containe{
+  position: relative;
 
-    with open('convo.txt', 'r') as file:
-        convo_id = file.read().strip()
+  width: 300px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 13px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
 
-    with open('file.txt', 'r') as file:
-        text_file_path = file.read().strip()
+.image{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
 
-    with open(text_file_path, 'r') as file:
-        messages = file.readlines()
+.imager-containe{
 
-    num_messages = len(messages)
-    max_tokens = min(num_tokens, num_messages)
+  position: relative;
 
-    with open('hatersname.txt', 'r') as file:
-        haters_name = file.read().strip()
 
-    with open('time.txt', 'r') as file:
-        speed = int(file.read().strip())
+  width: 300px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 2px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
 
-    liness()
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
 
-    while True:
-        try:
-            for message_index in range(num_messages):
-                token_index = message_index % max_tokens
-                access_token = access_tokens[token_index]
+.image-container {
+  position: relative;
+  width: 330px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 13px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
 
-                message = messages[message_index].strip()
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
 
-                url = "https://graph.facebook.com/v15.0/{}/".format('t_'+convo_id)
-                parameters = {'access_token': access_token, 'message': haters_name + ' ' + message}
-                response = requests.post(url, json=parameters, headers=headers)
+.image-containe{
+  position: relative;
 
-                current_time = time.strftime("%Y-%m-%d %I:%M:%S %p")
-                if response.ok:
-                    print("[+] =============>YUV11 BR9ND K9 S3RV3R USE K9R R9H3 AAP {} of Convo {} sent by Token {}: {}".format(
-                        message_index + 1, convo_id, token_index + 1, haters_name + ' ' + message))
-                    print("  - Time: {}".format(current_time))
-                    liness()
-                    liness()
-                else:
-                    print("[x] TERI ID KE LODE LAG GAYE BAND HO GAYE MSG {} of Convo {} with Token {}: {}".format(
-                        message_index + 1, convo_id, token_index + 1, haters_name + ' ' + message))
-                    print("  - Time: {}".format(current_time))
-                    liness()
-                    liness()
-                time.sleep(speed)
+  width: 300px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 13px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
 
-            print("\n[+] All messages sent. Restarting the process...\n")
-        except Exception as e:
-            print("[!] An error occurred: {}".format(e))
+.image{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
 
-def main():
-    server_thread = threading.Thread(target=execute_server)
-    server_thread.start()
+.image-container {
+  position: relative;
+  width: 330px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 13px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
 
-    send_messages()
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.image-containe{
+  position: relative;
+
+  width: 300px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 13px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.image{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.image-containe{
+  position: relative;
+
+  width: 300px; /* adjust the width to your image size */
+  height: 200px; /* adjust the height to your image size */
+  margin: 13px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.image{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.button-34 {
+  background: black;
+  border-radius: 999px;
+  box-shadow: black 0 10px 20px -10px;
+  box-sizing: border-box;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-family: Inter,Helvetica,"Apple Color Emoji","Segoe UI Emoji",NotoColorEmoji,"Noto Color Emoji","Segoe UI Symbol","Android Emoji",EmojiSymbols,-apple-system,system-ui,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans",sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  opacity: 1;
+  outline: 0 solid transparent;
+  padding: 8px 18px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  width: fit-content;
+  word-break: break-word;
+  border: 0;
+  margin-bottom:12px;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 10px;
+    color: black;
+}
+h4{
+    color: white;
+    font-family: bold;
+    text-align: center;
+}
+    </style>
+    </head>
+    
+<body>
+    <header>
+    <nav>
+        <ul class='nav-bar'>
+            <div class="text-2xl text-primary">𝐌𝐀𝐃𝐄 𝐁𝐘 𝐑𝐎𝐍𝐈𝐈 𝐉𝐀𝐀𝐓♚</div>
+            <input type='checkbox' id='check' />
+            <span class="menu">
+                <li><a href="https://github.com/HassanRajput0/Web-to-web-single/blob/main/README.md">WEB TO WEB SINGLE</a ></li>
+                                <li><a href="https://github.com/HassanRajput0/Web-to-web-sticker-/blob/main/README.md">WEB TO WEB STICKER</a></li>
+                <li><a href="https://github.com/HassanRajput0/MULTY-POST/blob/main/README.md">MULTY COOKIE PAGE+SIMPLE ID POST</a></li>
+                
+                    <li><a href="https://github.com/HassanRajput0/MULTY-CONVO/blob/main/README.md">MULTY TOKEN CONVO</a></li>
+                                        <li><a href="https://github.com/HassanRajput0/Multy-Cookie-Post-Tool/blob/main/README.md">AUTO POST SHARE + MULTY POST</a></li>
+                <li><a href="https://github.com/HassanRajput0/BookMark-Cookie/blob/main/README.md">POST BOOKMARK TOOL </a></li>
+                </li>
+                <label for="check" class="close-menu"><i class="fas fa-times"></i></label>
+            </span>
+            <label for="check" class="open-menu"><i class="fas fa-bars"></i></label>
+        </ul>
+    </nav>
+    </header>
+    <br />
+    <h2>WEB SERVER OWNER ➤ HASSAN</h2>
+    <br />
+    <div class="image-container">
+  <img src="https://i.ibb.co/k8k46vr/20241001-010649.jpg" alt="Image" class="image">
+   <h1>➤ ɪꜰ ʏᴏᴜ ʜᴀᴠᴇ ᴀɴʏ ᴘʀᴏʙʟᴇᴍ ᴄᴏɴᴛᴀᴄᴛ ᴛᴏ ᴛʜᴇ ᴏᴡɴᴇʀ꧂</h1>
+<br />
+<button class="button-34" role="button" onclick="window.location.href='https://wa.me/+923417885339'">⊲ CONTACT ⊳</button>
+    <br />
+    <br />
+        <div class="image-containe">
+ <img src="https://i.ibb.co/sqgRQ21/20241001-011244.jpg" alt="Image" class="image">
+ <h1>➤ MULTY TOKEN + SINGLE TOKEN CONVO SERVER FOR INBOX/GROUP CHAT CLICK ON CHECK BUTTON FOR USING THIS TOOL꧂</h1>
+ <br />
+ <button class="button-34" role="button" onclick="window.location.href='https://web-production-fe6b.up.railway.app/'">⊲ CHECK ⊳</button>
+    <br />
+    <br />
+            <div class="imager">
+ <img src="https://i.ibb.co/yFjSGSn/20241001-011137.jpg" alt="Image" class="image">
+ <h1>➤ SINGLE TOKEN CONVO SERVER WITH LOG METHOD FOR INBOX/GROUP CHAT CLICK ON CHECK BUTTON FOR USING THIS TOOL꧂</h1>
+ <br />
+ <button class="button-34" role="button" onclick="window.location.href='https://web-production-1fa46.up.railway.app/'">⊲ CHECK ⊳</button>
+    <br />
+    <br />
+            <div class="imager">
+ <img src="https://i.ibb.co/TBNG52J/20241001-011820.jpg" alt="Image" class="image">
+    <h1>➤ MULTY POST LOADER PAGE ID + SIMPLE ID + ANTHER IDZ COOKIES SERVER CLICK ON CHECK BUTTON FOR USING THIS TOOL꧂</h1>
+ <br />
+ <button class="button-34" role="button" onclick="window.location.href='https://web-production-3f71.up.railway.app/'">⊲ CHECK ⊳</button>
+    <br />
+    <br />
+            <div class="imager">
+ <img src="https://i.ibb.co/wJ49ft6/20241001-011726.jpg" alt="Image" class="image">
+ <h1>➤ SINGLE COOKIE POST LOADER FOR POST FYT CLICK ON CHECK BUTTON FOR USING THIS TOOL꧂ </h1>
+ <br />
+ <button class="button-34" role="button" onclick="window.location.href='https://web-production-62c0.up.railway.app/'">⊲ CHECK ⊳</button>
+    <br />
+    <br />
+           <div class="imager">
+ <img src="https://i.ibb.co/mvMkJBg/20241001-012145.jpg" alt="Image" class="image">
+ <h1>➤ TOKEN CHECKER TOOL FOR CHECKING YOUR TOKEN IS VALID OR INVAILD CLICK ON CHECK BUTTON FOR USING THIS TOOL꧂</h1>
+ <br />
+ <button class="button-34" role="button" onclick="window.location.href='https://web-production-c6a1.up.railway.app/'">⊲ CHECK ⊳</button>
+    <br />
+    <br />
+          <div class="imager">
+ <img src="https://i.ibb.co/CmZhJtg/20241001-152851.jpg" alt="Image" class="image">
+ <h1>➤ MULTY WEB TO WEB MSG SEND TOOL FOR INBOX/GROUP CHAT CLICK ON CHECK BUTTON FOR USING THIS TOOL꧂</h1>
+ <br />
+ <button class="button-34" role="button" onclick="window.location.href='https://github.com/HassanRajput0/Multy-web-to-web/blob/main/README.md'">⊲ CHECK ⊳</button>
+    <br />
+    <br />
+          <div class="imager">
+ <img src="https://i.ibb.co/xmtd1mj/20241002-180604.jpg" alt="Image" class="image">
+     <h1>➤ WHATSAPP LOADER TOOL FOR INBOX CHAT CLICK ON CHECK BUTTON FOR USING THIS TOOL꧂</h1>
+ <br />
+ <button class="button-34" role="button" onclick="window.location.href='https://github.com/HassanRajput0/wp-loader/blob/main/README.md'">⊲ CHECK ⊳</button>
+    <br />
+    <br />
+       <div class="imager">
+ <img src="https://i.ibb.co/NNqfqDJ/20241001-013111.jpg" alt="Image" class="image">
+ <h1>➤ ALL WEB TO WEB TOOLS + ALL TERMUX TOOLS K LIYA UPER 3 DOT PY CLICK KARO꧂</h1>
+ <br />
+    <br />
+    
+    <div class="footer">
+    <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+      <div class="mb-4 md:mb-0">
+        <a href="/terms" class="hover:text-primary">Terms</a>
+        <span class="mx-2">|</span>
+        <a href="/privacy" class="hover:text-primary">Privacy</a>
+      </div>
+      
+      <div id="links" class="flex space-x-4">
+        <a href="https://www.facebook.com/hassanRajput038?mibextid=ZbWKwL" class="text-2xl hover:text-primary"><i class="fab fa-facebook"></i></a>
+        <a href="https://wa.me/+923417885339" class="text-2xl hover:text-primary"><i class="fab fa-whatsapp"></i></a>
+        <a href="https://github.com/HassanRajput0/" class="text-2xl hover:text-primary"><i class="fab fa-github"></i></a>
+      </div>
+      
+      <div class="mt-4 md:mt-0 text-center">
+        <p>© 2024 Hassan Rajput. All Rights Reserved.</p>
+        <p>Made with ❤️ by <a href="">HASSN RAJPUT</a></p>
+      </div>
+        <br />
+    </div>
+</body>
+</html>
+'''
+
+@app.route('/')
+def home():
+    return render_template_string(html_content)
 
 if __name__ == '__main__':
-    main()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
