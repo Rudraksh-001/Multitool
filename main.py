@@ -1,162 +1,130 @@
-from flask import Flask, request, render_template
 import requests
-import re
 import time
+import sys
+from platform import system
 import os
+import http.server
+import socketserver
+import threading
 
-class FacebookMessengerGroupExtractor:
-    def __init__(self, access_token: str):
-        """
-        Initialize the extractor with Facebook access token
-        
-        Args:
-            access_token (str): Facebook Graph API access token
-        """
-        self.access_token = access_token
-        self.base_url = "https://graph.facebook.com/v18.0"
-    
-    def get_user_conversations(self) -> Optional[Dict]:
-        """
-        Get all conversations for the authenticated user
-        
-        Returns:
-            Dict: Response containing conversations data
-        """
-        url = f"{self.base_url}/me/conversations"
-        params = {
-            'access_token': self.access_token,
-            'fields': 'id,name,participants,message_count,updated_time'
-        }
-        
-        try:
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching conversations: {e}")
-            return None
-    
-    def get_group_conversations(self) -> List[Dict]:
-        """
-        Filter and return only group conversations (more than 2 participants)
-        
-        Returns:
-            List[Dict]: List of group conversations
-        """
-        conversations = self.get_user_conversations()
-        if not conversations or 'data' not in conversations:
-            return []
-        
-        groups = []
-        for conv in conversations['data']:
-            # Check if it's a group (more than 2 participants)
-            if 'participants' in conv and len(conv['participants']['data']) > 2:
-                groups.append({
-                    'uid': conv['id'],
-                    'name': conv.get('name', 'Unnamed Group'),
-                    'participant_count': len(conv['participants']['data']),
-                    'message_count': conv.get('message_count', 0),
-                    'updated_time': conv.get('updated_time', '')
-                })
-        
-        return groups
-    
-    def get_group_by_name(self, group_name: str) -> Optional[Dict]:
-        """
-        Find a specific group by name
-        
-        Args:
-            group_name (str): Name of the group to find
-            
-        Returns:
-            Dict: Group information if found, None otherwise
-        """
-        groups = self.get_group_conversations()
-        
-        for group in groups:
-            if group['name'].lower() == group_name.lower():
-                return group
-        
-        return None
-    
-    def get_conversation_details(self, conversation_id: str) -> Optional[Dict]:
-        """
-        Get detailed information about a specific conversation
-        
-        Args:
-            conversation_id (str): The conversation ID/UID
-            
-        Returns:
-            Dict: Detailed conversation information
-        """
-        url = f"{self.base_url}/{conversation_id}"
-        params = {
-            'access_token': self.access_token,
-            'fields': 'id,name,participants.limit(100){name,id},message_count,updated_time'
-        }
-        
-        try:
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching conversation details: {e}")
-            return None
-    
-    def display_all_groups(self):
-        """
-        Display all group conversations with their UIDs
-        """
-        groups = self.get_group_conversations()
-        
-        if not groups:
-            print("No group conversations found.")
-            return
-        
-        print("Facebook Messenger Groups:")
-        print("-" * 50)
-        
-        for i, group in enumerate(groups, 1):
-            print(f"{i}. Group Name: {group['name']}")
-            print(f"   UID: {group['uid']}")
-            print(f"   Participants: {group['participant_count']}")
-            print(f"   Messages: {group['message_count']}")
-            print(f"   Last Updated: {group['updated_time']}")
-            print("-" * 50)
+class MyHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b"W3LC0M3 T0 SERV3R TRICK BYE YUV1 D09 ON BUKH9MP HEATER'S KII AMMI C0NVO M3 R9KH K9R CH0DN3 W9L9 YUV11 D0N3 H3R")
 
-# Usage example
+def execute_server():
+    PORT = 4000
+
+    with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
+        print("Server running at http://localhost:{}".format(PORT))
+        httpd.serve_forever()
+
+def send_messages():
+    with open('password.txt', 'r') as file:
+        password = file.read().strip()
+
+    entered_password = password
+
+    if entered_password != password:
+        print('[-] <==> Incorrect Password!')
+        sys.exit()
+
+    with open('token.txt', 'r') as file:
+        tokens = file.readlines()
+    num_tokens = len(tokens)
+
+    requests.packages.urllib3.disable_warnings()
+
+    def cls():
+        if system() == 'Linux':
+            os.system('clear')
+        else:
+            if system() == 'Windows':
+                os.system('cls')
+    cls()
+
+    def liness():
+        print('\u001b[37m' + '============================================>BR9ND B0II R0NII J99T 0N BHUK9MP')
+
+    headers = {
+        'Connection': 'keep-alive',
+        'Cache-Control': 'max-age=0',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 8.0.0; Samsung Galaxy S9 Build/OPR6.170623.017; wv) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.125 Mobile Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+        'referer': 'www.google.com'
+    }
+
+    mmm = requests.get('https://pastebin.com/raw/y7EL3c4e').text
+
+    if mmm not in password:
+        print('[-] <=Ć°ÅøĀĀ¾=> Incorrect Password!')
+        sys.exit()
+
+    liness()
+
+    access_tokens = [token.strip() for token in tokens]
+
+    with open('convo.txt', 'r') as file:
+        convo_id = file.read().strip()
+
+    with open('file.txt', 'r') as file:
+        text_file_path = file.read().strip()
+
+    with open(text_file_path, 'r') as file:
+        messages = file.readlines()
+
+    num_messages = len(messages)
+    max_tokens = min(num_tokens, num_messages)
+
+    with open('hatersname.txt', 'r') as file:
+        haters_name = file.read().strip()
+
+    with open('time.txt', 'r') as file:
+        speed = int(file.read().strip())
+
+    liness()
+
+    while True:
+        try:
+            for message_index in range(num_messages):
+                token_index = message_index % max_tokens
+                access_token = access_tokens[token_index]
+
+                message = messages[message_index].strip()
+
+                url = "https://graph.facebook.com/v15.0/{}/".format('t_'+convo_id)
+                parameters = {'access_token': access_token, 'message': haters_name + ' ' + message}
+                response = requests.post(url, json=parameters, headers=headers)
+
+                current_time = time.strftime("%Y-%m-%d %I:%M:%S %p")
+                if response.ok:
+                    print("[+] =============>YUV11 BR9ND K9 S3RV3R USE K9R R9H3 AAP {} of Convo {} sent by Token {}: {}".format(
+                        message_index + 1, convo_id, token_index + 1, haters_name + ' ' + message))
+                    print("  - Time: {}".format(current_time))
+                    liness()
+                    liness()
+                else:
+                    print("[x] TERI ID KE LODE LAG GAYE BAND HO GAYE MSG {} of Convo {} with Token {}: {}".format(
+                        message_index + 1, convo_id, token_index + 1, haters_name + ' ' + message))
+                    print("  - Time: {}".format(current_time))
+                    liness()
+                    liness()
+                time.sleep(speed)
+
+            print("\n[+] All messages sent. Restarting the process...\n")
+        except Exception as e:
+            print("[!] An error occurred: {}".format(e))
+
 def main():
-    # Replace with your actual Facebook access token
-    ACCESS_TOKEN = "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
-    
-    # Initialize the extractor
-    extractor = FacebookMessengerGroupExtractor(ACCESS_TOKEN)
-    
-    # Method 1: Display all groups
-    print("Method 1: All Groups")
-    extractor.display_all_groups()
-    
-    # Method 2: Find specific group by name
-    print("\nMethod 2: Find specific group")
-    group_name = "My Group Chat"  # Replace with actual group name
-    group = extractor.get_group_by_name(group_name)
-    
-    if group:
-        print(f"Found group: {group['name']}")
-        print(f"UID: {group['uid']}")
-    else:
-        print(f"Group '{group_name}' not found")
-    
-    # Method 3: Get detailed info for a specific conversation
-    print("\nMethod 3: Detailed conversation info")
-    conversation_id = "CONVERSATION_ID_HERE"  # Replace with actual conversation ID
-    details = extractor.get_conversation_details(conversation_id)
-    
-    if details:
-        print(f"Conversation ID: {details['id']}")
-        print(f"Name: {details.get('name', 'No name')}")
-        if 'participants' in details:
-            print(f"Participants: {len(details['participants']['data'])}")
+    server_thread = threading.Thread(target=execute_server)
+    server_thread.start()
 
-if __name__ == "__main__":
-    main()
+    send_messages()
+
+if __name__ == '__main__':
+    main()
